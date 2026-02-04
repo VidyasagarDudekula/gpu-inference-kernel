@@ -1,0 +1,69 @@
+# Devices
+
+## [0] `NVIDIA GeForce GTX 1080 Ti`
+* SM Version: 610 (PTX Version: 520)
+* Number of SMs: 28
+* SM Default Clock Rate: 1645 MHz
+* Global Memory: 5751 MiB Free / 11161 MiB Total
+* Global Memory Bus Peak: 484 GB/sec (352-bit DDR @5505MHz)
+* Max Shared Memory: 96 KiB/SM, 48 KiB/Block
+* L2 Cache Size: 2816 KiB
+* Maximum Active Blocks: 32/SM
+* Maximum Active Threads: 2048/SM, 1024/Block
+* Available Registers: 65536/SM, 65536/Block
+* ECC Enabled: No
+
+## [1] `NVIDIA GeForce GTX 1080 Ti`
+* SM Version: 610 (PTX Version: 520)
+* Number of SMs: 28
+* SM Default Clock Rate: 1645 MHz
+* Global Memory: 11027 MiB Free / 11165 MiB Total
+* Global Memory Bus Peak: 484 GB/sec (352-bit DDR @5505MHz)
+* Max Shared Memory: 96 KiB/SM, 48 KiB/Block
+* L2 Cache Size: 2816 KiB
+* Maximum Active Blocks: 32/SM
+* Maximum Active Threads: 2048/SM, 1024/Block
+* Available Registers: 65536/SM, 65536/Block
+* ECC Enabled: No
+
+# Log
+
+```
+Run:  [1/8] vector_benchmark [Device=0 Elements=1024]
+Pass: Cold: 0.004924ms GPU, 0.007765ms CPU, 0.50s total GPU, 6.82s total wall, 101552x 
+Run:  [2/8] vector_benchmark [Device=0 Elements=65536]
+Pass: Cold: 0.006541ms GPU, 0.009391ms CPU, 0.50s total GPU, 4.32s total wall, 76448x 
+Run:  [3/8] vector_benchmark [Device=0 Elements=1048576]
+Pass: Cold: 0.036640ms GPU, 0.039551ms CPU, 0.50s total GPU, 0.79s total wall, 13648x 
+Run:  [4/8] vector_benchmark [Device=0 Elements=10485760]
+Pass: Cold: 0.324859ms GPU, 0.327802ms CPU, 0.50s total GPU, 0.52s total wall, 1540x 
+Run:  [5/8] vector_benchmark [Device=1 Elements=1024]
+Pass: Cold: 0.007072ms GPU, 0.012018ms CPU, 0.50s total GPU, 4.41s total wall, 70704x 
+Run:  [6/8] vector_benchmark [Device=1 Elements=65536]
+Pass: Cold: 0.008207ms GPU, 0.013131ms CPU, 0.50s total GPU, 3.57s total wall, 60928x 
+Run:  [7/8] vector_benchmark [Device=1 Elements=1048576]
+Pass: Cold: 0.041089ms GPU, 0.046018ms CPU, 0.50s total GPU, 0.83s total wall, 12176x 
+Run:  [8/8] vector_benchmark [Device=1 Elements=10485760]
+Pass: Cold: 0.353566ms GPU, 0.358592ms CPU, 0.50s total GPU, 0.53s total wall, 1424x 
+```
+
+# Benchmark Results
+
+## vector_benchmark
+
+### [0] NVIDIA GeForce GTX 1080 Ti
+
+| Elements | Samples |  CPU Time  | Noise  |  GPU Time  | Noise  |
+|----------|---------|------------|--------|------------|--------|
+|     1024 | 101552x |   7.765 us | 14.78% |   4.924 us | 17.56% |
+|    65536 |  76448x |   9.391 us | 13.04% |   6.541 us | 13.50% |
+|  1048576 |  13648x |  39.551 us |  4.04% |  36.640 us |  3.36% |
+| 10485760 |   1540x | 327.802 us |  0.37% | 324.859 us |  0.27% |
+### [1] NVIDIA GeForce GTX 1080 Ti
+
+| Elements | Samples |  CPU Time  | Noise  |  GPU Time  | Noise  |
+|----------|---------|------------|--------|------------|--------|
+|     1024 |  70704x |  12.018 us | 12.24% |   7.072 us | 16.32% |
+|    65536 |  60928x |  13.131 us | 13.74% |   8.207 us | 19.01% |
+|  1048576 |  12176x |  46.018 us |  4.00% |  41.089 us |  4.04% |
+| 10485760 |   1424x | 358.592 us |  0.58% | 353.566 us |  0.52% |

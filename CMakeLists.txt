@@ -11,6 +11,6 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(nvbench)
 
-add_executable(myproj main.cu)
+add_executable(myproj kernels/vector_add.cu)
 
 target_link_libraries(myproj PRIVATE nvbench)
