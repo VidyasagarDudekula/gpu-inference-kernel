@@ -1,22 +1,38 @@
-# The transfer speed from Host to Device, Pinned vs Pagged memory allocation in Host
+# Host-to-Device Transfer Speed: Pinned vs Paged Host Memory
 
-### The gpu hates to have some refereces to the memory address, it always deals with direct memory.
-### So the way you allocate the Memory in host will decide the transfer speed of that data from Host to Device.
-### When you allocate a memory using new/malloc --> this is a pagged memory allocation, as CPU can handle refereced memory via page tables.
-### The same bad for GPU while cudaMemcpy as it will ask the os to stop everything and move that referenced data (pagged) to buffer (pinned) from there it will move the data to gpu.
-### While cudaMallocHost is a pinned memory allocation, so it a direct un modified transfer to the gpu from host.
+## Why allocation type affects transfer speed
 
+- GPUs prefer working with **direct (non-pageable) memory**.
+- The way you allocate memory on the host affects how fast data can be transferred from **Host → Device**.
 
-## Check out few stats based on array size and pinned/pagged
-N:- 100, isPinned:- 1, elapsed_time:- 0.015232
-N:- 100, isPinned:- 0, elapsed_time:- 0.009216
-N:- 1024, isPinned:- 1, elapsed_time:- 0.009856
-N:- 1024, isPinned:- 0, elapsed_time:- 0.005728
-N:- 10240, isPinned:- 1, elapsed_time:- 0.011296
-N:- 10240, isPinned:- 0, elapsed_time:- 0.020512
-N:- 102400, isPinned:- 1, elapsed_time:- 0.039232
-N:- 102400, isPinned:- 0, elapsed_time:- 0.148352
-N:- 1024000, isPinned:- 1, elapsed_time:- 0.348096
-N:- 1024000, isPinned:- 0, elapsed_time:- 1.320960
-N:- 10240000, isPinned:- 1, elapsed_time:- 3.198560
-N:- 10240000, isPinned:- 0, elapsed_time:- 10.941856
+### Paged (pageable) host memory: `new` / `malloc`
+
+- Allocating with `new` or `malloc` gives **paged/pageable** memory.
+- The CPU can handle pageable memory via **page tables**.
+- For a `cudaMemcpy` from pageable host memory:
+  - CUDA typically has to **stage the data** through a temporary **pinned buffer**.
+  - This adds overhead before the data can be copied to the GPU.
+
+### Pinned (page-locked) host memory: `cudaMallocHost`
+
+- Allocating with `cudaMallocHost` gives **pinned (page-locked)** memory.
+- Since it’s already pinned, CUDA can transfer it more directly to the GPU (often faster, especially for larger transfers).
+
+---
+
+## Stats: array size vs pinned/paged
+
+| N (elements) | isPinned | elapsed_time |
+|---:|---:|---:|
+| 100 | 1 | 0.015232 |
+| 100 | 0 | 0.009216 |
+| 1024 | 1 | 0.009856 |
+| 1024 | 0 | 0.005728 |
+| 10240 | 1 | 0.011296 |
+| 10240 | 0 | 0.020512 |
+| 102400 | 1 | 0.039232 |
+| 102400 | 0 | 0.148352 |
+| 1024000 | 1 | 0.348096 |
+| 1024000 | 0 | 1.320960 |
+| 10240000 | 1 | 3.198560 |
+| 10240000 | 0 | 10.941856 |
