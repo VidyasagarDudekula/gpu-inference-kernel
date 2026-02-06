@@ -1,0 +1,3 @@
+Type,Total_Time_ms,Avg_Time_Per_Launch_us
+Loop_10k_Launches,10.719200,1.071920
+Single_Batch_Launch,0.019456,0.001946
