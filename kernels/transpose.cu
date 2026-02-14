@@ -13,27 +13,22 @@
 } while (0)
 
 
-__global__ void transpose(int *a, int *b, int N, int M){
-    __shared__ int tile[16][17];
-    int row_a = blockIdx.y * 16 + threadIdx.y;
-    int col_a = blockIdx.x * 16 + threadIdx.x;
-
-    int val = 0;
-    if(row_a<N && col_a<M){
-        int index_a = row_a * M + col_a;
-        val = a[index_a];
-    }
-
-    tile[threadIdx.x][threadIdx.y] = val;
+__global__ void transpose_optimal(int *a, int *b, int N, int M){
+    __shared__ int tile[32][33];
+    int block_offset_x = blockIdx.x * blockDim.x;
+    int block_offset_y = blockIdx.y * blockDim.y;
+    int global_x = threadIdx.x + block_offset_x;
+    int global_y = threadIdx.y + block_offset_y;
+    int index_a = global_y * M + global_x;
+    tile[threadIdx.y][threadIdx.x] = 0;
+    if(global_y<N && global_x<M)
+        tile[threadIdx.y][threadIdx.x] = a[index_a];
     __syncthreads();
-
-    int row_b = blockIdx.x * 16 + threadIdx.y;
-    int col_b = blockIdx.y * 16 + threadIdx.x;
-
-    if(row_b<M && col_b<N){
-        int index_b = row_b * N + col_b;
-        b[index_b] = tile[threadIdx.y][threadIdx.x];
-    }
+    int global_write_x = block_offset_y + threadIdx.x;
+    int global_write_y = block_offset_x + threadIdx.y;
+    int index_b = global_write_y * N + global_write_x;
+    if(global_write_x<N && global_write_y < M)
+    b[index_b] = tile[threadIdx.x][threadIdx.y];
 }
 
 __global__ void naive_2d_transpose(int *a, int *b, int N, int M){
@@ -119,7 +114,7 @@ int main(){
     printf("time it took for 2d array:- %f\n", elapsed_time);
 
     cudaEventRecord(start, 0);
-    transpose<<<gird, blocks>>>(d_a, d_b3, N, M);
+    transpose_optimal<<<gird, blocks>>>(d_a, d_b3, N, M);
     cudaEventRecord(end, 0);
     cudaDeviceSynchronize();
     cudaMemcpy(b, d_b3, bytes, cudaMemcpyDeviceToHost);
