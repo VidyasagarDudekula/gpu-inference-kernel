@@ -3,7 +3,7 @@
 #include<cuda_runtime.h>
 
 
-__global__ void sum_vector(int *a, int *output, int N){
+__global__ void sum_vector_v1(int *a, int *output, int N){
     __shared__ int sdata[1024];
     int stride = blockDim.x/2;
     int block_offset_x = blockDim.x * blockIdx.x;
@@ -20,6 +20,33 @@ __global__ void sum_vector(int *a, int *output, int N){
     }
     if(threadIdx.x==0)
         atomicAdd(output, sdata[0]);
+}
+
+__global__ void sum_vector_warp_red(int *a, int *output, int N){
+    __shared__ int sdata[1024];
+    int stride = blockDim.x/2;
+    int block_offset_x = blockDim.x * blockIdx.x;
+    int index = block_offset_x + threadIdx.x;
+    sdata[threadIdx.x] = 0;
+    if(index<N)
+    sdata[threadIdx.x] = a[index];
+    __syncthreads();
+    for(int step = stride; step>16; step/=2){
+        if(threadIdx.x < step){
+            sdata[threadIdx.x] += sdata[threadIdx.x+step];
+        }
+        __syncthreads();
+    }
+    int val = sdata[threadIdx.x];
+    if(threadIdx.x<32){
+        val += __shfl_down_sync(0xffffffff, val, 16);
+        val += __shfl_down_sync(0xffffffff, val, 8);
+        val += __shfl_down_sync(0xffffffff, val, 4);
+        val += __shfl_down_sync(0xffffffff, val, 2);
+        val += __shfl_down_sync(0xffffffff, val, 1);
+    }
+    if(threadIdx.x==0)
+        atomicAdd(output, val);
 }
 
 
@@ -42,7 +69,7 @@ float test_sum_vector(int N=100){
     cudaMalloc((void **)&d_o, sizeof(int));
     cudaMemcpy(d_o, output, 1*(sizeof(int)), cudaMemcpyHostToDevice);
     cudaEventRecord(start, 0);
-    sum_vector<<<blocks, block_size>>>(d_a, d_o, N);
+    sum_vector_v1<<<blocks, block_size>>>(d_a, d_o, N);
     cudaDeviceSynchronize();
     cudaEventRecord(end, 0);
     cudaMemcpy(output, d_o, sizeof(int), cudaMemcpyDeviceToHost);
@@ -54,5 +81,5 @@ float test_sum_vector(int N=100){
 
 int main(){
     test_sum_vector(); //warmup
-    printf("total Time:- %f\n", test_sum_vector(1024 * 10));
+    printf("total Time:- %f\n", test_sum_vector(1024 * 1000));
 }
