@@ -31,6 +31,101 @@ __global__ void prefix_sum(int *a, int *d_o, int N, int prev_sum){
 }
 
 
+__global__ void prefix_sum_optimal(int *a, int *d_o, int N){
+    __shared__ int tile[1024];
+    int bx = blockIdx.x;
+    int block_offset = bx * blockDim.x;
+    int index = block_offset + threadIdx.x;
+    int tx = threadIdx.x;
+    if(index<N)
+        tile[tx] = a[index];
+    __syncthreads();
+
+    for(int i=1; i<=512; i*=2){
+        int temp = 0;
+        if(index<N && tx-i>=0){
+            temp += tile[tx-i];
+        }
+        __syncthreads();
+        if(index<N){
+            tile[tx] += temp;
+        }
+        __syncthreads();
+    }
+
+    if(index< N && tx==1023)
+        d_o[bx] = tile[tx];
+    if(index<N)
+        a[index] = tile[tx];
+}
+
+void print(int *a, int N){
+    printf("\n");
+    for(int i=0; i<N; i+=1){
+        printf("%d ", a[i]);
+    }
+    printf("\n");
+}
+
+__global__ void add_it(int *a, int *d_o, int N){
+    int bx = blockIdx.x;
+    int block_offset = bx * blockDim.x;
+    int tx = threadIdx.x;
+    int index = block_offset + tx;
+    int val = 0;
+    if(bx>0)
+        val = d_o[bx];
+    //printf("bx:- %d, val:- %d\n", bx, val);
+    if(index<N)
+        a[index] += val;
+}
+
+int * test_prefix_optimal(int N=100){
+
+    int *a, *d_a;
+    int bytes = N * sizeof(int);
+    cudaMallocHost((void **)&a, bytes);
+    cudaMalloc((void **)&d_a, bytes);
+
+    for(int i =0; i<N;i+=1)
+        a[i] = (i+1);
+    printf("Original:-\n");
+    print(a, N);
+
+    int max_threads = 1024;
+    cudaEvent_t start, end;
+    cudaEventCreate(&start);
+    cudaEventCreate(&end);
+
+    int blocks = (N + max_threads -1)/max_threads;
+    int *output, *d_o;
+    cudaMallocHost((void **)&output, blocks * sizeof(int));
+    cudaMalloc((void **)&d_o, blocks * sizeof(int));
+    cudaEventRecord(start, 0);
+    cudaStream_t streams[blocks];
+    for(int i=0; i<blocks; i+=1){
+        cudaStreamCreate(&streams[i]);
+    }
+    cudaMemcpyAsync(d_a, a, bytes, cudaMemcpyHostToDevice, streams[0]);
+    prefix_sum_optimal<<<blocks, max_threads, 0, streams[0]>>>(d_a, d_o, N);
+    cudaMemcpyAsync(output, d_o, blocks * sizeof(int), cudaMemcpyDeviceToHost, streams[0]);
+    cudaDeviceSynchronize();
+    for(int i=1; i<blocks; i+=1)
+        output[i] += output[i-1];
+    cudaMemcpyAsync(d_o, output, blocks * sizeof(int), cudaMemcpyHostToDevice, streams[0]);
+    add_it<<<blocks, max_threads, 0, streams[0]>>>(d_a, d_o, N);
+    cudaMemcpyAsync(a, d_a, bytes, cudaMemcpyDeviceToHost, streams[0]);
+    cudaDeviceSynchronize();
+    print(a, N);
+    int actaul_val = (N * (N+1))/2;
+    printf("last index:- %d\nActual:- %d\n", a[N-1], actaul_val);
+    return 0;
+    cudaFreeHost(a);
+    cudaFree(d_a);
+    return a;
+
+}
+
 void test_prefix_sum(int N=100){
     int *a, *b, *d_a, *d_b, *output, *d_o;
     int total = N;
@@ -63,4 +158,5 @@ void test_prefix_sum(int N=100){
 
 int main(){
     test_prefix_sum(27293);
+    test_prefix_optimal(3000)
 }
